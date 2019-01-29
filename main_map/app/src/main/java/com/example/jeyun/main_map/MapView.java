@@ -18,7 +18,13 @@ public class MapView extends Fragment {
         moveMap = new MoveObject(getContext(), R.drawable.main_3);
         return moveMap;
     }
+    public void addExpectedCircle(double x, double y) {
+        moveMap.addExpectedCircle((int) x, (int) y);
+    }
 
+    public void drawImage() {
+        moveMap.invalidate();
+    }
 
 }
 

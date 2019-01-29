@@ -23,9 +23,7 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.kircherelectronics.fsensor.filter.BaseFilter;
 import com.kircherelectronics.fsensor.filter.averaging.LowPassFilter;
@@ -38,16 +36,17 @@ public class MainActivity extends AppCompatActivity {
 
     WifiManager wifiManager;
     List<ScanResult> mScanResult;
-    MapView map;
     TextView example;
-    //MODE
-    public enum MODE_STATE {
-        Calculate, Calibration, Initialization, WaitingMove, DR
-    }
+    TextView exY;
     MapView mapViewFragment;
     int wbnum = -1;
     int[] pos_arr;
     double[] in_mag_arr;
+
+    //MODE
+    public enum MODE_STATE {
+        Calculate, Calibration, Initialization, WaitingMove, DR
+    }
 
     //Variable
     //int direction_frombt = 0; // 0 : UP, 1 : RIGHT, 2 : DOWN, 3 : LEFT
@@ -67,6 +66,27 @@ public class MainActivity extends AppCompatActivity {
     int num;
     int count_num;
     int bnum;
+    MoveMarker move;
+    MoveObject MO;
+
+    class arrM {
+        int block_num;
+        double bX;
+        double bY;
+        int pointX;
+        int pointY;
+
+        public arrM() {
+
+        }
+    }
+
+    //double[] arrX = {31, 30, 29, 28.5, 27.5, 26.7};
+    double[] arrX = {-2.0, -1.7, -1.3, -0.9, -0.4, 0};
+
+    double[] arrY = new double[128];
+    //double sum;
+    arrM[] ma = new arrM[768];
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,11 +97,45 @@ public class MainActivity extends AppCompatActivity {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, 1001);
         }
         example = (TextView)findViewById(R.id.textView_temp);
+        exY = (TextView)findViewById(R.id.textView_temp2);
         in_mag_arr = new double[110];
         pos_arr = new int[3];
 
         num = 0;
         count_num = 0;
+
+        arrY[127] = 48; //98
+        for (int i = 126; i >=0 ; i--) {
+            arrY[i] = arrY[i + 1] - 0.38;
+        }
+
+        for (int n = 0; n < ma.length; n++) {
+            ma[n] = new arrM();
+            ma[n].block_num = n;
+        }
+
+        int p = 0;
+
+        for (int j = 0; j < 128; j++) {
+            if (j % 2 == 0) {
+                for (int k = 0; k < 6; k++) {
+                    ma[p].bX = arrX[k];
+                    ma[p].bY = arrY[j];
+                    ma[p].pointX = k;
+                    ma[p].pointY = j;
+                    p++;
+                }
+            }
+            if (j % 2 != 0) {
+                for (int k = 5; k >= 0; k--) {
+                    ma[p].bX = arrX[k];
+                    ma[p].bY = arrY[j];
+                    ma[p].pointX = k;
+                    ma[p].pointY = j;
+                    p++;
+                }
+            }
+        }
 
         mapViewFragment = (MapView) getSupportFragmentManager().findFragmentById(R.id.fragMapView);
 
@@ -127,8 +181,30 @@ public class MainActivity extends AppCompatActivity {
                         }
                         wbnum=calClass.calWifi(InputResult);
                     }
-                    example.setText(""+wbnum);
-                    wifiManager.startScan();
+
+                    //비교
+                    //sum = (((MainActivity)MainActivity.context).mag_data[0] + ((MainActivity)MainActivity.context).mag_data[1] + ((MainActivity)MainActivity.context).mag_data[2]);
+                        for (int i = 0; i < 676; i++) {
+                            if (ma[i].block_num == wbnum) {
+
+                                mapViewFragment.moveMap.clearExpectedCircle();
+
+                                mapViewFragment.moveMap.MU.MarkerX = ma[i].bX;
+                                example.setText("" + ma[i].bX);
+                                mapViewFragment.moveMap.MU.MarkerY = ma[i].bY;
+                                exY.setText("" + ma[i].bY);
+
+
+                                //mapViewFragment.addExpectedCircle(mapViewFragment.moveMap.MU.MarkerX, mapViewFragment.moveMap.MU.MarkerY);
+
+                                mapViewFragment.drawImage();
+                            }
+                        }
+
+
+
+
+                    //wifiManager.startScan();
                 } else if (action.equals(WifiManager.NETWORK_STATE_CHANGED_ACTION)) {
                     context.sendBroadcast(new Intent("wifi.ON_NETWORK_STATE_CHANGED"));
                 }
@@ -262,7 +338,9 @@ public class MainActivity extends AppCompatActivity {
                             if (activityRunning && (Acclist.get(1) > currentThreshold) && (timestamp - previousTime) > 500
                                     && (Acclist.get(1) > max(Acclist.get(0), Acclist.get(2)))) {
                                //example.setText(String.valueOf(++count_num));
+                                wifiManager.startScan();
                                 previousTime = timestamp;
+
                             }
 
                             Acclist.remove(0);

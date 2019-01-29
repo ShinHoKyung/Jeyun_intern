@@ -11,8 +11,8 @@ public class MoveMarker {
 
     private float X;
     private float Y;
-    public static float MarkerX = 0;
-    public static float MarkerY = 0;
+    public static double MarkerX = 0;
+    public static double MarkerY = 0;
 
     // 0,0 좌표
     public static double positionX = 31;
