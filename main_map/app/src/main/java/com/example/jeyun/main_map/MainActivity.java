@@ -36,10 +36,9 @@ public class MainActivity extends AppCompatActivity {
 
     WifiManager wifiManager;
     List<ScanResult> mScanResult;
-    TextView example;
-    TextView exY;
     MapView mapViewFragment;
-    int wbnum = -1;
+    int cBNum=-1;
+    int prevBNum=-1;
     int[] pos_arr;
     double[] in_mag_arr;
 
@@ -59,10 +58,8 @@ public class MainActivity extends AppCompatActivity {
     public float[] result_data = new float[3];
     public float[] mag_data = new float[3];
     public float[] acc_data = new float[3];
-    public int step_cnt=0;
     public static Context context;
     boolean activityRunning;
-    public int count;
     int num;
     int count_num;
     int bnum;
@@ -96,8 +93,6 @@ public class MainActivity extends AppCompatActivity {
         if (Build.VERSION.SDK_INT >= 23 && ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, 1001);
         }
-        example = (TextView)findViewById(R.id.textView_temp);
-        exY = (TextView)findViewById(R.id.textView_temp2);
         in_mag_arr = new double[110];
         pos_arr = new int[3];
 
@@ -179,32 +174,47 @@ public class MainActivity extends AppCompatActivity {
                             InputResult[i][0]=mScanResult.get(i).BSSID;
                             InputResult[i][1]=Integer.toString(mScanResult.get(i).level);
                         }
-                        wbnum=calClass.calWifi(InputResult);
+                        cBNum=calClass.calWifi(InputResult);
                     }
+                    if(prevBNum==-1)
+                    {
 
-                    //비교
-                    //sum = (((MainActivity)MainActivity.context).mag_data[0] + ((MainActivity)MainActivity.context).mag_data[1] + ((MainActivity)MainActivity.context).mag_data[2]);
                         for (int i = 0; i < 676; i++) {
-                            if (ma[i].block_num == wbnum) {
-
+                            if (ma[i].block_num == cBNum) {
                                 mapViewFragment.moveMap.clearExpectedCircle();
-
                                 mapViewFragment.moveMap.MU.MarkerX = ma[i].bX;
-                                example.setText("" + ma[i].bX);
                                 mapViewFragment.moveMap.MU.MarkerY = ma[i].bY;
-                                exY.setText("" + ma[i].bY);
-
-
                                 //mapViewFragment.addExpectedCircle(mapViewFragment.moveMap.MU.MarkerX, mapViewFragment.moveMap.MU.MarkerY);
-
                                 mapViewFragment.drawImage();
                             }
                         }
+                        prevBNum = cBNum;
+                        wifiManager.startScan();
+                    }
+                    else
+                    {
+                        if(Math.abs(cBNum-prevBNum)<75)
+                        {
+                            for (int i = 0; i < 676; i++) {
+                                if (ma[i].block_num == cBNum) {
+                                    mapViewFragment.moveMap.clearExpectedCircle();
+                                    mapViewFragment.moveMap.MU.MarkerX = ma[i].bX;
+                                    mapViewFragment.moveMap.MU.MarkerY = ma[i].bY;
+                                    //mapViewFragment.addExpectedCircle(mapViewFragment.moveMap.MU.MarkerX, mapViewFragment.moveMap.MU.MarkerY);
+                                    mapViewFragment.drawImage();
+                                }
+                            }
+                            prevBNum = cBNum;
+                            wifiManager.startScan();
+                        }
+                        else
+                        {
+                            wifiManager.startScan();
+                        }
+                    }
+                    //비교
+                    //sum = (((MainActivity)MainActivity.context).mag_data[0] + ((MainActivity)MainActivity.context).mag_data[1] + ((MainActivity)MainActivity.context).mag_data[2]);
 
-
-
-
-                    //wifiManager.startScan();
                 } else if (action.equals(WifiManager.NETWORK_STATE_CHANGED_ACTION)) {
                     context.sendBroadcast(new Intent("wifi.ON_NETWORK_STATE_CHANGED"));
                 }
@@ -338,7 +348,7 @@ public class MainActivity extends AppCompatActivity {
                             if (activityRunning && (Acclist.get(1) > currentThreshold) && (timestamp - previousTime) > 500
                                     && (Acclist.get(1) > max(Acclist.get(0), Acclist.get(2)))) {
                                //example.setText(String.valueOf(++count_num));
-                                wifiManager.startScan();
+
                                 previousTime = timestamp;
 
                             }
